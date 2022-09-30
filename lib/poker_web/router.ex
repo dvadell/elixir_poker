@@ -17,7 +17,7 @@ defmodule PokerWeb.Router do
   scope "/", PokerWeb do
     pipe_through :browser
 
-    get "/", PageController, :index
+    live "/", PokerLive
   end
 
   # Other scopes may use custom stacks.
