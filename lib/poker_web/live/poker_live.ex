@@ -5,15 +5,20 @@ defmodule PokerWeb.PokerLive do
     socket = 
       if connected?(socket) do
         {:ok, tref} = :timer.send_interval(1000, self(), :tick)
-        assign(socket, tref: tref)
+        socket
+        |> assign(tref: tref)
+        |> assign(user_id: Enum.random(0..10000))
       else
         socket
       end
 
-    expiration_timex = Timex.shift(Timex.now(), minutes: 1)
+
+    expiration_timex = Timex.shift(Timex.now(), seconds: 3)
     IO.inspect(expiration_timex)
 
-    socket = assign(socket, vote: 0, name: "Diego", topic: "No topic defined", 
+    socket = assign(socket, vote: 0, 
+                            name: "<pick a name>", 
+                            topic: "No topic defined", 
                             expiration_timex: expiration_timex,
                             time_remaining: time_remaining(expiration_timex) ) # Valor inicial
     {:ok, socket}
@@ -31,7 +36,12 @@ defmodule PokerWeb.PokerLive do
 
     <%= @vote %>
 
-    <button phx-click="vote"> Vote </button>
+    <button phx-click="vote" value=1> 1 </button>
+    <button phx-click="vote" value=2> 2 </button>
+    <button phx-click="vote" value=3> 3 </button>
+    <button phx-click="vote" value=5> 5 </button>
+    <button phx-click="vote" value=8> 8 </button>
+    <button phx-click="vote" value=13> 13 </button>
 
     <p class="m-4 font-semibold text-indigo-800">
       <%= if @time_remaining > 0 do %>
@@ -43,9 +53,8 @@ defmodule PokerWeb.PokerLive do
     """
   end
 
-  def handle_event("vote", _, socket) do
-    vote = socket.assigns.vote + 1;
-    socket = assign(socket, :vote, vote)
+  def handle_event("vote", %{ "value" => value } = params , socket) do
+    socket = assign(socket, :vote, String.to_integer(value))
     # Alternativa
     # socket= update(socket, :vote, fn vote -> vote + 1 end )
     {:noreply, socket}
