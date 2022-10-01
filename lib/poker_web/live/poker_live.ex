@@ -1,11 +1,17 @@
 defmodule PokerWeb.PokerLive do
   use PokerWeb, :live_view
 
-  def mount(_params, _session, socket) do
+  def mount(%{ "id" => id }, _session, socket) do
     socket = 
       if connected?(socket) do
         {:ok, tref} = :timer.send_interval(1000, self(), :tick)
+
+        IO.puts "Subscribing to #{id}"
+        PokerWeb.Endpoint.subscribe(id)
+        IO.puts "Subscribed"
+
         socket
+        |> assign(room_id: id)
         |> assign(tref: tref)
         |> assign(user_id: Enum.random(0..10000))
       else
@@ -27,8 +33,6 @@ defmodule PokerWeb.PokerLive do
   def render(assigns) do
     IO.inspect(assigns)
     ~L"""
-    <h1>LiveView is awesome <%= @name %>!</h1>
-
     <form phx-change="update">
       <input name="topic" value="<%= @topic %>">
       <input name="name" value="<%= @name %>">
@@ -55,6 +59,7 @@ defmodule PokerWeb.PokerLive do
 
   def handle_event("vote", %{ "value" => value } = params , socket) do
     socket = assign(socket, :vote, String.to_integer(value))
+    PokerWeb.Endpoint.broadcast!(socket.assigns.room_id, "new_message", "TICK") # PubSub
     # Alternativa
     # socket= update(socket, :vote, fn vote -> vote + 1 end )
     {:noreply, socket}
@@ -66,6 +71,10 @@ defmodule PokerWeb.PokerLive do
   end
 
   def handle_info(:tick, socket) do
+
+    IO.puts "Broadcasting to test"
+    PokerWeb.Endpoint.broadcast!(socket.assigns.room_id, "new_message", "TICK") # PubSub
+
     expiration_timex = socket.assigns.expiration_timex
     IO.inspect(expiration_timex, label: "Expiration_time")
     socket = 
@@ -76,6 +85,14 @@ defmodule PokerWeb.PokerLive do
         socket
       end
     socket = assign(socket, time_remaining: time_remaining(expiration_timex))
+    {:noreply, socket}
+  end
+
+  # PubSub
+  def handle_info(%{event: "new_message", payload: new_message}, socket) do
+    IO.puts("Got a pubsub message")
+    IO.inspect(new_message)
+
     {:noreply, socket}
   end
 
