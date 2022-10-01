@@ -11,9 +11,9 @@ defmodule PokerWeb.PokerLive do
         IO.puts "Subscribed"
 
         socket
+        |> assign(users: %{})
         |> assign(room_id: id)
         |> assign(tref: tref)
-        |> assign(user_id: Enum.random(0..10000))
       else
         socket
       end
@@ -57,15 +57,18 @@ defmodule PokerWeb.PokerLive do
     """
   end
 
+  # Events
+  #########
   def handle_event("vote", %{ "value" => value } = params , socket) do
+    PokerWeb.Endpoint.broadcast!(socket.assigns.room_id, "vote", %{ value: String.to_integer(value), user_id: socket.id }) # PubSub
     socket = assign(socket, :vote, String.to_integer(value))
-    PokerWeb.Endpoint.broadcast!(socket.assigns.room_id, "new_message", "TICK") # PubSub
     # Alternativa
     # socket= update(socket, :vote, fn vote -> vote + 1 end )
     {:noreply, socket}
   end
 
   def handle_event("update", %{"name" => name, "topic" => topic}, socket) do
+    PokerWeb.Endpoint.broadcast!(socket.assigns.room_id, "update", %{ topic: topic, name: name, user_id: socket.id }) # PubSub
     socket = assign(socket, topic: topic, name: name)
     {:noreply, socket}
   end
@@ -88,11 +91,24 @@ defmodule PokerWeb.PokerLive do
     {:noreply, socket}
   end
 
-  # PubSub
+  ##################
+  # PubSub handlers
+  ##################
   def handle_info(%{event: "new_message", payload: new_message}, socket) do
     IO.puts("Got a pubsub message")
     IO.inspect(new_message)
+    {:noreply, socket}
+  end
 
+  def handle_info(%{event: "vote", payload: %{ value: value, user_id: user_id } }, socket) do
+    IO.puts("Got a vote from #{user_id}: #{value}")
+    users = Map.put(socket.assigns.users, user_id, value)
+    socket = assign(socket, :users, users)
+    {:noreply, socket}
+  end
+
+  def handle_info(%{event: "update", payload: %{ topic: topic, name: name, user_id: user_id } }, socket) do
+    socket = assign(socket, topic: topic)
     {:noreply, socket}
   end
 
