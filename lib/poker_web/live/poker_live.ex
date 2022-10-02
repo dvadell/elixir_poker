@@ -42,7 +42,7 @@ defmodule PokerWeb.PokerLive do
       <input name="name" value="<%= @name %>">
     </form>
 
-    Your vote: <%= @vote %>. Your admin is <%= @admin %>
+    Your vote: <%= @vote %>.
 
     <div class="row" style="justify-content: space-between;column-gap: 1rem;">
         <button phx-click="vote" value=1 style="flex-grow: 1"> 1 </button>
@@ -66,9 +66,9 @@ defmodule PokerWeb.PokerLive do
     <%= for user <- @users do %>
     <div class="row">
       <%= if Map.get(user, :vote) do %>
-        <p><%= icon_from_user(user) %> <%= user.name %> voted <%= user.vote %></p>
+        <p><%= icon_from_user(user, @admin) %> <%= user.name %> voted <%= user.vote %></p>
       <% else %>
-        <p><%= icon_from_user(user) %> <%= user.name %> hasn't voted yet</p>
+        <p><%= icon_from_user(user, @admin) %> <%= user.name %> hasn't voted yet</p>
       <% end %>
     </div>
     <% end %>
