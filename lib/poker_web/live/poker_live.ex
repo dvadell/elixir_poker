@@ -30,18 +30,15 @@ defmodule PokerWeb.PokerLive do
   def render(assigns) do
     IO.inspect(assigns)
     ~L"""
-    <div style="display: flex; justify-content: space-around;">
-        <button class="button button-outline" phx-click="vote" value=1> ▶ </button>
-        <button class="button button-outline" phx-click="vote" value=1> ⏹  </button>
-        <button class="button button-outline" phx-click="vote" value=1> 🗘  </button>
+    <div class="row" style="justify-content: space-between; column-gap: 1rem;">
+      <button phx-click="restart" class="button button-outline" style="flex-grow: 1; color: red"> 🗘 Restart / New </button>
     </div>
-
     <form phx-change="update">
       <input name="topic" value="<%= @topic %>">
       <input name="name" value="<%= @name %>" style="width: 50%"> 
     </form>
 
-    Your vote: <%= @vote %>.
+    You voted: <%= @vote %>
 
     <div class="row" style="justify-content: space-between;column-gap: 1rem;">
         <button phx-click="vote" value=1 style="flex-grow: 1"> 1 </button>
@@ -52,7 +49,7 @@ defmodule PokerWeb.PokerLive do
         <button phx-click="vote" value=13 style="flex-grow: 1"> 13 </button>
     </div>
 
-    <h2> Users: </h2>
+    <h2> Users </h2>
 
     <%= for user <- users_in_order(@users) do %>
     <div class="row">
@@ -106,6 +103,12 @@ defmodule PokerWeb.PokerLive do
     {:noreply, socket}
   end
 
+  def handle_event("restart", _params, socket) do
+    if socket.id == socket.assigns.admin do
+        PokerWeb.Endpoint.broadcast!(socket.assigns.room_id, "restart", %{ user_id: socket.id }) 
+    end
+    {:noreply, socket}
+  end
 
   ##################
   # PubSub handlers
@@ -171,4 +174,17 @@ defmodule PokerWeb.PokerLive do
     |> assign(users: users)
     {:noreply, socket}
   end
+
+  def handle_info(%{event: "restart", payload: %{ user_id: user_id } }, socket) do
+
+    # Remove all votes and topic
+    users = Enum.map(socket.assigns.users, fn user -> Map.put(user, :vote, nil) end)
+    socket = socket
+      |> assign(:topic, "No topic defined")
+      |> assign(:users, users)
+      |> assign(:vote, nil)
+
+    {:noreply, socket}
+  end
+
 end
