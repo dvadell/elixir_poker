@@ -12,25 +12,18 @@ defmodule PokerWeb.PokerLive do
         PokerWeb.Endpoint.subscribe(id)
         PokerWeb.Endpoint.broadcast!(id, "new_user", %{ user_id: socket.id })
 
-        {:ok, tref} = :timer.send_interval(1000, self(), :tick)
-
         socket
         |> assign(room_id: id)
-        |> assign(tref: tref)
       else
         socket
       end
 
 
-    expiration_timex = Timex.shift(Timex.now(), seconds: 3)
-    IO.inspect(expiration_timex)
-
     socket = assign(socket, vote: 0, 
                             users: [%{ user_id: socket.id, vote: nil, name: "Admin" }],
                             name: "<pick a name>", 
                             topic: "No topic defined", 
-                            expiration_timex: expiration_timex,
-                            time_remaining: time_remaining(expiration_timex) ) # Valor inicial
+                            )
     {:ok, socket}
   end
 
@@ -52,14 +45,6 @@ defmodule PokerWeb.PokerLive do
         <button phx-click="vote" value=8 style="flex-grow: 1"> 8 </button>
         <button phx-click="vote" value=13 style="flex-grow: 1"> 13 </button>
     </div>
-
-    <p class="m-4 font-semibold text-indigo-800">
-      <%= if @time_remaining > 0 do %>
-        <%= format_time(@time_remaining) %> 
-      <% else %>
-        Expired!
-      <% end %>
-    </p>
 
     <h2> Users: </h2>
 
@@ -111,22 +96,6 @@ defmodule PokerWeb.PokerLive do
     {:noreply, socket}
   end
 
-  def handle_info(:tick, socket) do
-
-    PokerWeb.Endpoint.broadcast!(socket.assigns.room_id, "new_message", "TICK") # PubSub
-
-    expiration_timex = socket.assigns.expiration_timex
-    IO.inspect(expiration_timex, label: "Expiration_time")
-    socket = 
-      if time_remaining(expiration_timex) < 1 do
-        :timer.cancel(socket.assigns.tref)
-        assign(socket, tref: nil)
-      else
-        socket
-      end
-    socket = assign(socket, time_remaining: time_remaining(expiration_timex))
-    {:noreply, socket}
-  end
 
   ##################
   # PubSub handlers
@@ -179,7 +148,6 @@ defmodule PokerWeb.PokerLive do
                                   %{
                                       admin: socket.assigns.admin,
                                       users: socket.assigns.users,
-                                      time_remaining: socket.assigns.time_remaining,
                                       topic: socket.assigns.topic,
                                   }
                                 )
@@ -187,22 +155,10 @@ defmodule PokerWeb.PokerLive do
     {:noreply, socket}
   end
 
-  def handle_info(%{event: "status", payload: %{ admin: admin, users: users, time_remaining: time_remaining, topic: topic } }, socket) do
+  def handle_info(%{event: "status", payload: %{ admin: admin, users: users, topic: topic } }, socket) do
     socket = socket
     |> assign(admin: admin)
     |> assign(users: users)
     {:noreply, socket}
-  end
-
-  # Helper functions
-  ##################
-  defp time_remaining(expiration_timex) do
-    DateTime.diff(expiration_timex, Timex.now())
-  end
-
-  defp format_time(time) do
-    time
-    |> Timex.Duration.from_seconds()
-    |> Timex.format_duration(:humanized)
   end
 end
