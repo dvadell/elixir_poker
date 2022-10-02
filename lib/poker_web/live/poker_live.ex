@@ -20,6 +20,8 @@ defmodule PokerWeb.PokerLive do
 
 
     socket = assign(socket, vote: 0, 
+                            reveal: false,
+                            me: socket.id,
                             users: [%{ user_id: socket.id, vote: nil, name: "Admin" }],
                             name: "<pick a name>", 
                             topic: "No topic defined", 
@@ -27,11 +29,12 @@ defmodule PokerWeb.PokerLive do
     {:ok, socket}
   end
 
-  def render(assigns) do
+  def render(assigns) when assigns.admin == assigns.me do
     IO.inspect(assigns)
     ~L"""
     <div class="row" style="justify-content: space-between; column-gap: 1rem;">
       <button phx-click="restart" class="button button-outline" style="flex-grow: 1; color: red"> 🗘 Restart / New </button>
+      <button phx-click="reveal"  class="button button-outline" style="flex-grow: 1; color: red"> 👀 Reveal votes </button>
     </div>
     <form phx-change="update">
       <input name="topic" value="<%= @topic %>">
@@ -63,6 +66,52 @@ defmodule PokerWeb.PokerLive do
     """
   end
 
+  def render(assigns) do
+    ~L"""
+    <form phx-change="update">
+      <input name="topic" value="<%= @topic %>" disabled>
+      <input name="name" value="<%= @name %>" style="width: 50%"> 
+    </form>
+
+    You voted: <%= @vote %>
+
+    <div class="row" style="justify-content: space-between;column-gap: 1rem;">
+        <button phx-click="vote" value=1 style="flex-grow: 1"> 1 </button>
+        <button phx-click="vote" value=2 style="flex-grow: 1"> 2 </button>
+        <button phx-click="vote" value=3 style="flex-grow: 1"> 3 </button>
+        <button phx-click="vote" value=5 style="flex-grow: 1"> 5 </button>
+        <button phx-click="vote" value=8 style="flex-grow: 1"> 8 </button>
+        <button phx-click="vote" value=13 style="flex-grow: 1"> 13 </button>
+    </div>
+
+    <h2> Users </h2>
+
+    <%= if @reveal do %>
+        <%= for user <- users_in_order(@users) do %>
+        <div class="row">
+          <%= if Map.get(user, :vote) do %>
+            <p><%= icon_from_user(user, @admin) %> <%= user.name %> voted <%= user.vote %></p>
+          <% else %>
+            <p><%= icon_from_user(user, @admin) %> <%= user.name %> hasn't voted yet</p>
+          <% end %>
+        </div>
+        <% end %>
+    <% else %>
+        <%= for user <- @users do %>
+        <div class="row">
+          <%= if Map.get(user, :vote) do %>
+            <p><%= icon_from_user(user, @admin) %> <%= user.name %> voted</p>
+          <% else %>
+            <p><%= icon_from_user(user, @admin) %> <%= user.name %> hasn't voted yet</p>
+          <% end %>
+        </div>
+        <% end %>
+    <% end %>
+
+    """
+  end
+
+
   # View Helper functions
   #######################
   defp users_in_order(users) do
@@ -92,8 +141,6 @@ defmodule PokerWeb.PokerLive do
   def handle_event("vote", %{ "value" => value } = params , socket) do
     PokerWeb.Endpoint.broadcast!(socket.assigns.room_id, "vote", %{ value: String.to_integer(value), user_id: socket.id }) # PubSub
     socket = assign(socket, :vote, String.to_integer(value))
-    # Alternativa
-    # socket= update(socket, :vote, fn vote -> vote + 1 end )
     {:noreply, socket}
   end
 
@@ -109,6 +156,14 @@ defmodule PokerWeb.PokerLive do
     end
     {:noreply, socket}
   end
+
+  def handle_event("reveal", _params, socket) do
+    if socket.id == socket.assigns.admin do
+        PokerWeb.Endpoint.broadcast!(socket.assigns.room_id, "reveal", %{ user_id: socket.id }) 
+    end
+    {:noreply, socket}
+  end
+
 
   ##################
   # PubSub handlers
@@ -176,15 +231,17 @@ defmodule PokerWeb.PokerLive do
   end
 
   def handle_info(%{event: "restart", payload: %{ user_id: user_id } }, socket) do
-
     # Remove all votes and topic
     users = Enum.map(socket.assigns.users, fn user -> Map.put(user, :vote, nil) end)
     socket = socket
       |> assign(:topic, "No topic defined")
       |> assign(:users, users)
       |> assign(:vote, nil)
-
     {:noreply, socket}
+  end
+
+  def handle_info(%{event: "reveal", payload: %{ user_id: user_id } }, socket) do
+    {:noreply, assign(socket, :reveal, true)}
   end
 
 end
