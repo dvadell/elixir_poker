@@ -48,7 +48,7 @@ defmodule PokerWeb.PokerLive do
 
     <h2> Users: </h2>
 
-    <%= for user <- @users do %>
+    <%= for user <- users_in_order(@users) do %>
     <div class="row">
       <%= if Map.get(user, :vote) do %>
         <p><%= icon_from_user(user, @admin) %> <%= user.name %> voted <%= user.vote %></p>
@@ -62,6 +62,10 @@ defmodule PokerWeb.PokerLive do
 
   # View Helper functions
   #######################
+  defp users_in_order(users) do
+    Enum.sort(users, fn (u1, u2) -> u1.vote < u2.vote end)
+  end
+
   defp icon_from_user(user, admin \\ false) do
     background = 
       if admin == user.user_id do
