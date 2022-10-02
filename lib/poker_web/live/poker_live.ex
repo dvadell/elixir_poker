@@ -2,9 +2,9 @@ defmodule PokerWeb.PokerLive do
   use PokerWeb, :live_view
 
   def mount(%{ "id" => id }, _session, socket) do
+    socket = assign(socket, admin: nil)
     socket = 
       if connected?(socket) do
-
         # Assign myself as the admin. If someone answers with the status, it'll be overwritten.
         socket = assign(socket, admin: socket.id)
 
@@ -26,7 +26,7 @@ defmodule PokerWeb.PokerLive do
     IO.inspect(expiration_timex)
 
     socket = assign(socket, vote: 0, 
-                            users: [%{ user_id: socket.id }],
+                            users: [%{ user_id: socket.id, vote: nil, name: "Admin" }],
                             name: "<pick a name>", 
                             topic: "No topic defined", 
                             expiration_timex: expiration_timex,
@@ -42,7 +42,7 @@ defmodule PokerWeb.PokerLive do
       <input name="name" value="<%= @name %>">
     </form>
 
-    Your vote: <%= @vote %>
+    Your vote: <%= @vote %>. Your admin is <%= @admin %>
 
     <div class="row" style="justify-content: space-between;column-gap: 1rem;">
         <button phx-click="vote" value=1 style="flex-grow: 1"> 1 </button>
@@ -66,13 +66,33 @@ defmodule PokerWeb.PokerLive do
     <%= for user <- @users do %>
     <div class="row">
       <%= if Map.get(user, :vote) do %>
-        <p>User <%= user.user_id %> voted <%= user.vote %></p>
+        <p><%= icon_from_user(user) %> <%= user.name %> voted <%= user.vote %></p>
       <% else %>
-        <p>User <%= user.user_id %> hasn't voted yet</p>
+        <p><%= icon_from_user(user) %> <%= user.name %> hasn't voted yet</p>
       <% end %>
     </div>
     <% end %>
     """
+  end
+
+  # View Helper functions
+  #######################
+  defp icon_from_user(user, admin \\ false) do
+    background = 
+      if admin == user.user_id do
+        "red"
+      else
+        "blue"
+      end
+
+    initial = user.name
+      |> String.trim()
+      |> String.at(0)
+      |> String.upcase
+	    ~s(<span style="width: 40px; height: 40px; font-size: 3rem; background-color: #{background}; 
+                            border-radius: 20px;margina: 1rem; padding-left:1rem; display: inline-block">
+                  #{initial}
+               </span>) |> raw()
   end
 
   # Events
@@ -86,7 +106,7 @@ defmodule PokerWeb.PokerLive do
   end
 
   def handle_event("update", %{"name" => name, "topic" => topic}, socket) do
-    PokerWeb.Endpoint.broadcast!(socket.assigns.room_id, "update", %{ topic: topic, name: name, user_id: socket.id }) # PubSub
+    PokerWeb.Endpoint.broadcast!(socket.assigns.room_id, "update", %{ topic: topic, name: name, user_id: socket.id }) 
     socket = assign(socket, topic: topic, name: name)
     {:noreply, socket}
   end
@@ -130,7 +150,15 @@ defmodule PokerWeb.PokerLive do
   end
 
   def handle_info(%{event: "update", payload: %{ topic: topic, name: name, user_id: user_id } }, socket) do
-    socket = assign(socket, topic: topic)
+    # Update the user's name
+    users = Enum.map(socket.assigns.users, fn
+      %{ :user_id => ^user_id } = map ->
+        map 
+        |> Map.put(:name, name)
+      other -> other
+    end)
+
+    socket = assign(socket, topic: topic, users: users)
     {:noreply, socket}
   end
 
@@ -140,7 +168,7 @@ defmodule PokerWeb.PokerLive do
 
   def handle_info(%{event: "new_user", payload: %{ user_id: user_id } }, socket) do
     # Add the user to the list of users.
-    users = [ %{ user_id: user_id, vote: 0 } | socket.assigns.users ]
+    users = [ %{ user_id: user_id, vote: nil, name: "Unknown" } | socket.assigns.users ]
     socket = assign(socket, :users, users)
 
     # if I'm the admin, broadcast the status.
