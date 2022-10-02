@@ -48,6 +48,7 @@ defmodule Poker.MixProject do
       {:plug_cowboy, "~> 2.5"},
 
       {:timex, "~> 3.0"},
+      {:mnemonic_slugs, "~> 0.0.3"},
     ]
   end
 

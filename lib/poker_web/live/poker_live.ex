@@ -2,6 +2,7 @@ defmodule PokerWeb.PokerLive do
   use PokerWeb, :live_view
 
   def mount(%{ "id" => id }, _session, socket) do
+    initial_name = MnemonicSlugs.generate_slug
     socket = assign(socket, admin: nil)
     socket = 
       if connected?(socket) do
@@ -10,7 +11,7 @@ defmodule PokerWeb.PokerLive do
 
         # Tell the world we are here and get the state.
         PokerWeb.Endpoint.subscribe(id)
-        PokerWeb.Endpoint.broadcast!(id, "new_user", %{ user_id: socket.id })
+        PokerWeb.Endpoint.broadcast!(id, "new_user", %{ user_id: socket.id, name: initial_name })
 
         socket
         |> assign(room_id: id)
@@ -18,12 +19,11 @@ defmodule PokerWeb.PokerLive do
         socket
       end
 
-
     socket = assign(socket, vote: 0, 
                             reveal: false,
                             me: socket.id,
-                            users: [%{ user_id: socket.id, vote: nil, name: "Admin" }],
-                            name: "<pick a name>", 
+                            users: [%{ user_id: socket.id, vote: nil, name: initial_name }],
+                            name: initial_name, 
                             topic: "No topic defined", 
                             )
     {:ok, socket}
@@ -37,11 +37,14 @@ defmodule PokerWeb.PokerLive do
       <button phx-click="reveal"  class="button button-outline" style="flex-grow: 1; color: red"> 👀 Reveal votes </button>
     </div>
     <form phx-change="update">
-      <input name="topic" value="<%= @topic %>">
-      <input name="name" value="<%= @name %>" style="width: 50%"> 
+      Topic: <input name="topic" value="<%= @topic %>">
+      <label>Your name: </label><input name="name" value="<%= @name %>"> 
     </form>
 
-    You voted: <%= @vote %>
+    <div style="display: flex; justify-content: space-between">
+        <span>You voted: <%= @vote %></span>
+        <span>Average: <%= calc_average_votes(@users) %></span>
+    </div>
 
     <div class="row" style="justify-content: space-between;column-gap: 1rem;">
         <button phx-click="vote" value=1 style="flex-grow: 1"> 1 </button>
@@ -52,6 +55,7 @@ defmodule PokerWeb.PokerLive do
         <button phx-click="vote" value=13 style="flex-grow: 1"> 13 </button>
     </div>
 
+    <hr>
     <h2> Users </h2>
 
     <%= for user <- users_in_order(@users) do %>
@@ -68,9 +72,10 @@ defmodule PokerWeb.PokerLive do
 
   def render(assigns) do
     ~L"""
+    <h3><%= @topic %></h3>
     <form phx-change="update">
-      <input name="topic" value="<%= @topic %>" disabled>
-      <input name="name" value="<%= @name %>" style="width: 50%"> 
+      <input name="topic" value="<%= @topic %>" type="hidden">
+      <label>Your name: </label><input name="name" value="<%= @name %>"> 
     </form>
 
     You voted: <%= @vote %>
@@ -84,6 +89,7 @@ defmodule PokerWeb.PokerLive do
         <button phx-click="vote" value=13 style="flex-grow: 1"> 13 </button>
     </div>
 
+    <hr>
     <h2> Users </h2>
 
     <%= if @reveal do %>
@@ -114,6 +120,18 @@ defmodule PokerWeb.PokerLive do
 
   # View Helper functions
   #######################
+  defp calc_average_votes(users) do
+    average = Enum.filter(users, fn user -> user.vote end )
+      |> Enum.reduce(%{sum: 0, votes: 0},  
+                     fn item, %{ sum: sum, votes: votes } -> %{sum: item.vote + sum, votes: votes + 1 } end 
+                    )
+    if average[:votes] == 0 do
+      "0/0"
+    else
+      "#{ Kernel.trunc( average[:sum] / average[:votes] ) }/#{ average[:votes] }"
+    end
+  end
+
   defp users_in_order(users) do
     Enum.sort(users, fn (u1, u2) -> u1.vote < u2.vote end)
   end
@@ -199,13 +217,13 @@ defmodule PokerWeb.PokerLive do
     {:noreply, socket}
   end
 
-  def handle_info(%{event: "new_user", payload: %{ user_id: user_id } }, socket) when user_id == socket.id do
+  def handle_info(%{event: "new_user", payload: %{ user_id: user_id, name: name } }, socket) when user_id == socket.id do
     {:noreply, socket}
   end
 
-  def handle_info(%{event: "new_user", payload: %{ user_id: user_id } }, socket) do
+  def handle_info(%{event: "new_user", payload: %{ user_id: user_id, name: name } }, socket) do
     # Add the user to the list of users.
-    users = [ %{ user_id: user_id, vote: nil, name: "Unknown" } | socket.assigns.users ]
+    users = [ %{ user_id: user_id, vote: nil, name: name } | socket.assigns.users ]
     socket = assign(socket, :users, users)
 
     # if I'm the admin, broadcast the status.
@@ -237,6 +255,7 @@ defmodule PokerWeb.PokerLive do
       |> assign(:topic, "No topic defined")
       |> assign(:users, users)
       |> assign(:vote, nil)
+      |> assign(:reveal, false)
     {:noreply, socket}
   end
 
