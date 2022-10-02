@@ -30,9 +30,15 @@ defmodule PokerWeb.PokerLive do
   def render(assigns) do
     IO.inspect(assigns)
     ~L"""
+    <div style="display: flex; justify-content: space-around;">
+        <button class="button button-outline" phx-click="vote" value=1> ▶ </button>
+        <button class="button button-outline" phx-click="vote" value=1> ⏹  </button>
+        <button class="button button-outline" phx-click="vote" value=1> 🗘  </button>
+    </div>
+
     <form phx-change="update">
       <input name="topic" value="<%= @topic %>">
-      <input name="name" value="<%= @name %>">
+      <input name="name" value="<%= @name %>" style="width: 50%"> 
     </form>
 
     Your vote: <%= @vote %>.
