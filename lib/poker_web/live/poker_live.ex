@@ -4,14 +4,17 @@ defmodule PokerWeb.PokerLive do
   def mount(%{ "id" => id }, _session, socket) do
     socket = 
       if connected?(socket) do
+
+        # Assign myself as the admin. If someone answers with the status, it'll be overwritten.
+        socket = assign(socket, admin: socket.id)
+
+        # Tell the world we are here and get the state.
+        PokerWeb.Endpoint.subscribe(id)
+        PokerWeb.Endpoint.broadcast!(id, "new_user", %{ user_id: socket.id })
+
         {:ok, tref} = :timer.send_interval(1000, self(), :tick)
 
-        IO.puts "Subscribing to #{id}"
-        PokerWeb.Endpoint.subscribe(id)
-        IO.puts "Subscribed"
-
         socket
-        |> assign(users: %{})
         |> assign(room_id: id)
         |> assign(tref: tref)
       else
@@ -23,6 +26,7 @@ defmodule PokerWeb.PokerLive do
     IO.inspect(expiration_timex)
 
     socket = assign(socket, vote: 0, 
+                            users: [%{ user_id: socket.id }],
                             name: "<pick a name>", 
                             topic: "No topic defined", 
                             expiration_timex: expiration_timex,
@@ -38,14 +42,16 @@ defmodule PokerWeb.PokerLive do
       <input name="name" value="<%= @name %>">
     </form>
 
-    <%= @vote %>
+    Your vote: <%= @vote %>
 
-    <button phx-click="vote" value=1> 1 </button>
-    <button phx-click="vote" value=2> 2 </button>
-    <button phx-click="vote" value=3> 3 </button>
-    <button phx-click="vote" value=5> 5 </button>
-    <button phx-click="vote" value=8> 8 </button>
-    <button phx-click="vote" value=13> 13 </button>
+    <div class="row" style="justify-content: space-between;column-gap: 1rem;">
+        <button phx-click="vote" value=1 style="flex-grow: 1"> 1 </button>
+        <button phx-click="vote" value=2 style="flex-grow: 1"> 2 </button>
+        <button phx-click="vote" value=3 style="flex-grow: 1"> 3 </button>
+        <button phx-click="vote" value=5 style="flex-grow: 1"> 5 </button>
+        <button phx-click="vote" value=8 style="flex-grow: 1"> 8 </button>
+        <button phx-click="vote" value=13 style="flex-grow: 1"> 13 </button>
+    </div>
 
     <p class="m-4 font-semibold text-indigo-800">
       <%= if @time_remaining > 0 do %>
@@ -54,6 +60,18 @@ defmodule PokerWeb.PokerLive do
         Expired!
       <% end %>
     </p>
+
+    <h2> Users: </h2>
+
+    <%= for user <- @users do %>
+    <div class="row">
+      <%= if Map.get(user, :vote) do %>
+        <p>User <%= user.user_id %> voted <%= user.vote %></p>
+      <% else %>
+        <p>User <%= user.user_id %> hasn't voted yet</p>
+      <% end %>
+    </div>
+    <% end %>
     """
   end
 
@@ -75,7 +93,6 @@ defmodule PokerWeb.PokerLive do
 
   def handle_info(:tick, socket) do
 
-    IO.puts "Broadcasting to test"
     PokerWeb.Endpoint.broadcast!(socket.assigns.room_id, "new_message", "TICK") # PubSub
 
     expiration_timex = socket.assigns.expiration_timex
@@ -95,20 +112,57 @@ defmodule PokerWeb.PokerLive do
   # PubSub handlers
   ##################
   def handle_info(%{event: "new_message", payload: new_message}, socket) do
-    IO.puts("Got a pubsub message")
-    IO.inspect(new_message)
     {:noreply, socket}
   end
 
   def handle_info(%{event: "vote", payload: %{ value: value, user_id: user_id } }, socket) do
     IO.puts("Got a vote from #{user_id}: #{value}")
-    users = Map.put(socket.assigns.users, user_id, value)
+    # Find the entry for the user user_id and update the vote
+    users = Enum.map(socket.assigns.users, fn
+      %{ :user_id => ^user_id } = map ->
+        map 
+        |> Map.put(:vote, value)
+      other -> other
+    end)
+
     socket = assign(socket, :users, users)
     {:noreply, socket}
   end
 
   def handle_info(%{event: "update", payload: %{ topic: topic, name: name, user_id: user_id } }, socket) do
     socket = assign(socket, topic: topic)
+    {:noreply, socket}
+  end
+
+  def handle_info(%{event: "new_user", payload: %{ user_id: user_id } }, socket) when user_id == socket.id do
+    {:noreply, socket}
+  end
+
+  def handle_info(%{event: "new_user", payload: %{ user_id: user_id } }, socket) do
+    # Add the user to the list of users.
+    users = [ %{ user_id: user_id, vote: 0 } | socket.assigns.users ]
+    socket = assign(socket, :users, users)
+
+    # if I'm the admin, broadcast the status.
+    if socket.assigns.admin == socket.id do
+        PokerWeb.Endpoint.broadcast!(
+                                  socket.assigns.room_id, 
+                                  "status", 
+                                  %{
+                                      admin: socket.assigns.admin,
+                                      users: socket.assigns.users,
+                                      time_remaining: socket.assigns.time_remaining,
+                                      topic: socket.assigns.topic,
+                                  }
+                                )
+    end
+    {:noreply, socket}
+  end
+
+  def handle_info(%{event: "status", payload: %{ admin: admin, users: users, time_remaining: time_remaining, topic: topic } }, socket) do
+    socket = socket
+    |> assign(admin: admin)
+    |> assign(users: users)
     {:noreply, socket}
   end
 
