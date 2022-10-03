@@ -36,8 +36,10 @@ defmodule PokerWeb.PokerLive do
       <button phx-click="restart" class="button button-outline" style="flex-grow: 1; color: red"> 🗘 Restart / New </button>
       <button phx-click="reveal"  class="button button-outline" style="flex-grow: 1; color: red"> 👀 Reveal votes </button>
     </div>
-    <form phx-change="update">
+    <form phx-change="update_topic">
       Topic: <input name="topic" value="<%= @topic %>">
+    </form>
+    <form phx-change="update_name">
       <label>Your name: </label><input name="name" value="<%= @name %>"> 
     </form>
 
@@ -73,8 +75,8 @@ defmodule PokerWeb.PokerLive do
   def render(assigns) do
     ~L"""
     <h3><%= @topic %></h3>
-    <form phx-change="update">
       <input name="topic" value="<%= @topic %>" type="hidden">
+    <form phx-change="update_name">
       <label>Your name: </label><input name="name" value="<%= @name %>"> 
     </form>
 
@@ -169,9 +171,15 @@ defmodule PokerWeb.PokerLive do
     {:noreply, socket}
   end
 
-  def handle_event("update", %{"name" => name, "topic" => topic}, socket) do
-    PokerWeb.Endpoint.broadcast!(socket.assigns.room_id, "update", %{ topic: topic, name: name, user_id: socket.id }) 
-    socket = assign(socket, topic: topic, name: name)
+  def handle_event("update_topic", %{"topic" => topic}, socket) do
+    PokerWeb.Endpoint.broadcast!(socket.assigns.room_id, "update_topic", %{ topic: topic, user_id: socket.id }) 
+    socket = assign(socket, topic: topic)
+    {:noreply, socket}
+  end
+
+  def handle_event("update_name", %{"name" => name}, socket) do
+    PokerWeb.Endpoint.broadcast!(socket.assigns.room_id, "update_name", %{ name: name, user_id: socket.id }) 
+    socket = assign(socket, name: name)
     {:noreply, socket}
   end
 
@@ -211,16 +219,20 @@ defmodule PokerWeb.PokerLive do
     {:noreply, socket}
   end
 
-  def handle_info(%{event: "update", payload: %{ topic: topic, name: name, user_id: user_id } }, socket) do
+  def handle_info(%{event: "update_topic", payload: %{ topic: topic, user_id: user_id } }, socket) do
+    socket = assign(socket, topic: topic)
+    {:noreply, socket}
+  end
+
+  def handle_info(%{event: "update_name", payload: %{ name: name, user_id: user_id } }, socket) do
     # Update the user's name
     users = Enum.map(socket.assigns.users, fn
       %{ :user_id => ^user_id } = map ->
-        map 
+        map
         |> Map.put(:name, name)
       other -> other
     end)
-
-    socket = assign(socket, topic: topic, users: users)
+    socket = assign(socket, users: users)
     {:noreply, socket}
   end
 
@@ -252,6 +264,7 @@ defmodule PokerWeb.PokerLive do
     socket = socket
     |> assign(admin: admin)
     |> assign(users: users)
+    |> assign(topic: topic)
     {:noreply, socket}
   end
 
