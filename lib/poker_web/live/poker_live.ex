@@ -144,7 +144,14 @@ defmodule PokerWeb.PokerLive do
         "blue"
       end
 
-    initial = user.name
+    name = if user.name != "" do
+      user.name
+    else
+      "?"
+    end
+
+    IO.inspect(name, label: "NAME")
+    initial = name
       |> String.trim()
       |> String.at(0)
       |> String.upcase
