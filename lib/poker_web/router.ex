@@ -18,7 +18,7 @@ defmodule PokerWeb.Router do
   scope "/", PokerWeb do
     pipe_through :browser
 
-    live "/poker/:id", PokerLive
+    live "/elc/:id", PokerLive
   end
 
   # Other scopes may use custom stacks.
