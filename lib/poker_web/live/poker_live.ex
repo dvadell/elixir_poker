@@ -46,7 +46,6 @@ defmodule PokerWeb.PokerLive do
 
     <div style="display: flex; justify-content: space-between">
         <span>You voted: <%= @vote %></span>
-        <span>Average: <%= calc_average_votes(@users) %></span>
     </div>
 
     <div class="row" style="justify-content: space-between;column-gap: 1rem;">
@@ -58,7 +57,6 @@ defmodule PokerWeb.PokerLive do
         <button phx-click="vote" value=13 style="flex-grow: 1"> 13 </button>
     </div>
 
-    <hr>
     <h2> Users </h2>
 
     <%= for user <- users_in_order(@users) do %>
@@ -81,7 +79,7 @@ defmodule PokerWeb.PokerLive do
 
   def render(assigns) do
     ~L"""
-    <h3><%= @topic %></h3>
+    <h2><%= @topic %></h2>
       <input name="topic" value="<%= @topic %>" type="hidden">
     <form phx-change="update_name">
       <label>Your name: </label><input name="name" value="<%= @name %>"> 
@@ -101,7 +99,6 @@ defmodule PokerWeb.PokerLive do
     </div>
     <% end %>
 
-    <hr>
     <h2> Users </h2>
 
     <%= if @reveal do %>
@@ -139,18 +136,6 @@ defmodule PokerWeb.PokerLive do
 
   # View Helper functions
   #######################
-  defp calc_average_votes(users) do
-    average = Enum.filter(users, fn user -> user.vote end )
-      |> Enum.reduce(%{sum: 0, votes: 0},  
-                     fn item, %{ sum: sum, votes: votes } -> %{sum: item.vote + sum, votes: votes + 1 } end 
-                    )
-    if average[:votes] == 0 do
-      "0/0"
-    else
-      "#{ Kernel.trunc( average[:sum] / average[:votes] ) }/#{ average[:votes] }"
-    end
-  end
-
   defp average_votes(users) do
     average = Enum.filter(users, fn user -> user.vote end )
       |> Enum.reduce(%{sum: 0, votes: 0},
