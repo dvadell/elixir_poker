@@ -71,6 +71,11 @@ defmodule PokerWeb.PokerLive do
       <% end %>
     </div>
     <% end %>
+    <div class="users-row" style="border-bottom: solid 1px black"></div>
+    <div class="users-row">
+      <div class="users-column"> 🗠  <strong>Average</strong> </div>
+      <div class="users-column result"><%= average_votes(@users) %></div>
+    </div>
     """
   end
 
@@ -84,6 +89,8 @@ defmodule PokerWeb.PokerLive do
 
     You voted: <%= @vote %>
 
+    <%= if @reveal do %>
+    <% else %>
     <div class="row" style="justify-content: space-between;column-gap: 1rem;">
         <button phx-click="vote" value=1 style="flex-grow: 1"> 1 </button>
         <button phx-click="vote" value=2 style="flex-grow: 1"> 2 </button>
@@ -92,6 +99,7 @@ defmodule PokerWeb.PokerLive do
         <button phx-click="vote" value=8 style="flex-grow: 1"> 8 </button>
         <button phx-click="vote" value=13 style="flex-grow: 1"> 13 </button>
     </div>
+    <% end %>
 
     <hr>
     <h2> Users </h2>
@@ -107,6 +115,11 @@ defmodule PokerWeb.PokerLive do
           <% end %>
         </div>
         <% end %>
+        <div class="users-row" style="border-bottom: solid 1px black"></div>
+        <div class="users-row">
+          <div class="users-column"> 🗠  <strong>Average</strong> </div>
+          <div class="users-column result"><%= average_votes(@users) %></div>
+        </div>
     <% else %>
         <%= for user <- @users do %>
         <div class="users-row">
@@ -137,6 +150,19 @@ defmodule PokerWeb.PokerLive do
       "#{ Kernel.trunc( average[:sum] / average[:votes] ) }/#{ average[:votes] }"
     end
   end
+
+  defp average_votes(users) do
+    average = Enum.filter(users, fn user -> user.vote end )
+      |> Enum.reduce(%{sum: 0, votes: 0},
+                     fn item, %{ sum: sum, votes: votes } -> %{sum: item.vote + sum, votes: votes + 1 } end
+                    )
+    if average[:votes] == 0 do
+      "0"
+    else
+      "#{ Kernel.trunc( average[:sum] / average[:votes] ) }"
+    end
+  end
+
 
   defp users_in_order(users) do
     Enum.sort(users, fn (u1, u2) -> u1.vote < u2.vote end)
