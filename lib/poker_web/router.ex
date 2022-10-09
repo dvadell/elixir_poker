@@ -1,5 +1,6 @@
 defmodule PokerWeb.Router do
   use PokerWeb, :router
+  #use Phoenix.Router
 
   pipeline :browser do
     plug :accepts, ["html"]
@@ -18,6 +19,7 @@ defmodule PokerWeb.Router do
   scope "/", PokerWeb do
     pipe_through :browser
 
+    get "/", PageController, :index
     live "/elc/:id", PokerLive
   end
 
