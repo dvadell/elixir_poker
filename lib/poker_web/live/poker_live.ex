@@ -61,11 +61,12 @@ defmodule PokerWeb.PokerLive do
     <h2> Users </h2>
 
     <%= for user <- users_in_order(@users) do %>
-    <div class="row">
+    <div class="users-row">
       <%= if Map.get(user, :vote) do %>
-        <p><%= icon_from_user(user, @admin) %> <%= user.name %> voted <%= user.vote %></p>
+        <div class="users-column"> 👤 <strong><%= user.name %></strong> voted </div>
+        <div class="users-column result"><%= user.vote %></div>
       <% else %>
-        <p><%= icon_from_user(user, @admin) %> <%= user.name %> hasn't voted yet</p>
+        <div class="users-column"> 👤 <strong><%= user.name %></strong> hasn't voted yet</div>
       <% end %>
     </div>
     <% end %>
@@ -96,21 +97,23 @@ defmodule PokerWeb.PokerLive do
 
     <%= if @reveal do %>
         <%= for user <- users_in_order(@users) do %>
-        <div class="row">
+        <div class="users-row">
           <%= if Map.get(user, :vote) do %>
-            <p><%= icon_from_user(user, @admin) %> <%= user.name %> voted <%= user.vote %></p>
+            <div class="users-column"> 👤 <strong><%= user.name %></strong> voted </div>
+            <div class="users-column result"><%= user.vote %></div>
           <% else %>
-            <p><%= icon_from_user(user, @admin) %> <%= user.name %> hasn't voted yet</p>
+            <div class="users-column"> 👤 <strong><%= user.name %></strong> hasn't voted yet</div>
           <% end %>
         </div>
         <% end %>
     <% else %>
         <%= for user <- @users do %>
-        <div class="row">
+        <div class="users-row">
           <%= if Map.get(user, :vote) do %>
-            <p><%= icon_from_user(user, @admin) %> <%= user.name %> voted</p>
+            <div class="users-column"> 👤 <strong><%= user.name %></strong> voted </div>
+            <div class="users-column result"> ✅ </div>
           <% else %>
-            <p><%= icon_from_user(user, @admin) %> <%= user.name %> hasn't voted yet</p>
+            <div class="users-column"> 👤 <strong><%= user.name %></strong> hasn't voted yet</div>
           <% end %>
         </div>
         <% end %>
@@ -136,31 +139,6 @@ defmodule PokerWeb.PokerLive do
 
   defp users_in_order(users) do
     Enum.sort(users, fn (u1, u2) -> u1.vote < u2.vote end)
-  end
-
-  defp icon_from_user(user, admin \\ false) do
-    background = 
-      if admin == user.user_id do
-        "red"
-      else
-        "blue"
-      end
-
-    name = if user.name != "" do
-      user.name
-    else
-      "?"
-    end
-
-    IO.inspect(name, label: "NAME")
-    initial = name
-      |> String.trim()
-      |> String.at(0)
-      |> String.upcase
-	    ~s(<span style="width: 40px; height: 40px; font-size: 3rem; background-color: #{background}; 
-                            border-radius: 20px;margina: 1rem; padding-left:1rem; display: inline-block">
-                  #{initial}
-               </span>) |> raw()
   end
 
   # Events

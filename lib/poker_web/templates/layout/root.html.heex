@@ -8,6 +8,31 @@
     <%= live_title_tag assigns[:page_title] || "Poker", suffix: " · Phoenix Framework" %>
     <link phx-track-static rel="stylesheet" href={Routes.static_path(@conn, "/assets/app.css")}/>
     <script defer phx-track-static type="text/javascript" src={Routes.static_path(@conn, "/assets/app.js")}></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300&display=swap" rel="stylesheet"> 
+  <style>
+  * {
+        font-family: 'Roboto', sans-serif;
+        font-size: 2rem;
+  }
+ .users-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+ .users-column {
+    flex-shrink: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 0;
+  }
+ .result {
+    text-align: right;
+    width: 3rem;
+ }
+  </style>
   </head>
   <body>
     <header>
