@@ -1,17 +1,18 @@
 defmodule PokerWeb.PokerLive do
   use PokerWeb, :live_view
 
-  def mount(%{ "id" => id }, _session, socket) do
-    initial_name = MnemonicSlugs.generate_slug
+  def mount(%{ "id" => id }, session, socket) do
+    IO.inspect(session)
+    my_id = Map.get(session, "id")
     socket = assign(socket, admin: nil)
     socket = 
       if connected?(socket) do
         # Assign myself as the admin. If someone answers with the status, it'll be overwritten.
-        socket = assign(socket, admin: socket.id)
+        socket = assign(socket, admin: my_id)
 
         # Tell the world we are here and get the state.
         PokerWeb.Endpoint.subscribe(id)
-        PokerWeb.Endpoint.broadcast!(id, "new_user", %{ user_id: socket.id, name: initial_name })
+        PokerWeb.Endpoint.broadcast!(id, "new_user", %{ user_id: my_id, name: my_id })
 
         socket
         |> assign(room_id: id)
@@ -21,9 +22,9 @@ defmodule PokerWeb.PokerLive do
 
     socket = assign(socket, vote: 0, 
                             reveal: false,
-                            me: socket.id,
-                            users: [%{ user_id: socket.id, vote: nil, name: initial_name }],
-                            name: initial_name, 
+                            me: my_id,
+                            users: [%{ user_id: my_id, vote: nil, name: my_id }],
+                            name: my_id, 
                             topic: "No topic defined", 
                             )
     {:ok, socket}
@@ -144,33 +145,33 @@ defmodule PokerWeb.PokerLive do
   # Events
   #########
   def handle_event("vote", %{ "value" => value } = params , socket) do
-    PokerWeb.Endpoint.broadcast!(socket.assigns.room_id, "vote", %{ value: String.to_integer(value), user_id: socket.id }) # PubSub
+    PokerWeb.Endpoint.broadcast!(socket.assigns.room_id, "vote", %{ value: String.to_integer(value), user_id: socket.assigns.me }) # PubSub
     socket = assign(socket, :vote, String.to_integer(value))
     {:noreply, socket}
   end
 
   def handle_event("update_topic", %{"topic" => topic}, socket) do
-    PokerWeb.Endpoint.broadcast!(socket.assigns.room_id, "update_topic", %{ topic: topic, user_id: socket.id }) 
+    PokerWeb.Endpoint.broadcast!(socket.assigns.room_id, "update_topic", %{ topic: topic, user_id: socket.assigns.me }) 
     socket = assign(socket, topic: topic)
     {:noreply, socket}
   end
 
   def handle_event("update_name", %{"name" => name}, socket) do
-    PokerWeb.Endpoint.broadcast!(socket.assigns.room_id, "update_name", %{ name: name, user_id: socket.id }) 
+    PokerWeb.Endpoint.broadcast!(socket.assigns.room_id, "update_name", %{ name: name, user_id: socket.assigns.me }) 
     socket = assign(socket, name: name)
     {:noreply, socket}
   end
 
   def handle_event("restart", _params, socket) do
-    if socket.id == socket.assigns.admin do
-        PokerWeb.Endpoint.broadcast!(socket.assigns.room_id, "restart", %{ user_id: socket.id }) 
+    if socket.assigns.me == socket.assigns.admin do
+        PokerWeb.Endpoint.broadcast!(socket.assigns.room_id, "restart", %{ user_id: socket.assigns.me }) 
     end
     {:noreply, socket}
   end
 
   def handle_event("reveal", _params, socket) do
-    if socket.id == socket.assigns.admin do
-        PokerWeb.Endpoint.broadcast!(socket.assigns.room_id, "reveal", %{ user_id: socket.id }) 
+    if socket.assigns.me == socket.assigns.admin do
+        PokerWeb.Endpoint.broadcast!(socket.assigns.room_id, "reveal", %{ user_id: socket.assigns.me }) 
     end
     {:noreply, socket}
   end
@@ -214,35 +215,46 @@ defmodule PokerWeb.PokerLive do
     {:noreply, socket}
   end
 
-  def handle_info(%{event: "new_user", payload: %{ user_id: user_id, name: name } }, socket) when user_id == socket.id do
+  def handle_info(%{event: "new_user", payload: %{ user_id: user_id, name: name } }, socket) when user_id == socket.assigns.me do
     {:noreply, socket}
   end
 
-  def handle_info(%{event: "new_user", payload: %{ user_id: user_id, name: name } }, socket) do
-    # Add the user to the list of users.
-    users = [ %{ user_id: user_id, vote: nil, name: name } | socket.assigns.users ]
-    socket = assign(socket, :users, users)
+  def handle_info(%{event: "new_user", payload: %{ user_id: user_id, name: name } }, socket) when socket.assigns.admin == socket.assigns.me do
+    # Add the user only if it doesn't exist yet.
+    users = 
+      if Enum.any?(socket.assigns.users, fn map -> map.user_id === user_id end ) do
+        socket.assigns.users
+      else
+        # Add the user to the list of users.
+        [ %{ user_id: user_id, vote: nil, name: name } | socket.assigns.users ]
+      end
+    socket = assign(socket, users: users)
 
-    # if I'm the admin, broadcast the status.
-    if socket.assigns.admin == socket.id do
-        PokerWeb.Endpoint.broadcast!(
-                                  socket.assigns.room_id, 
-                                  "status", 
-                                  %{
-                                      admin: socket.assigns.admin,
-                                      users: socket.assigns.users,
-                                      topic: socket.assigns.topic,
-                                  }
-                                )
-    end
+    PokerWeb.Endpoint.broadcast!(
+                              socket.assigns.room_id, 
+                              "status", 
+                              %{
+                                  admin: socket.assigns.admin,
+                                  users: socket.assigns.users,
+                                  topic: socket.assigns.topic,
+                              }
+                            )
+    {:noreply, socket}
+  end
+
+  def handle_info(%{event: "new_user", payload: %{ user_id: _user_id, name: _name } }, socket) do
     {:noreply, socket}
   end
 
   def handle_info(%{event: "status", payload: %{ admin: admin, users: users, topic: topic } }, socket) do
+    [my_user] = Enum.filter(users, fn user -> user.user_id == socket.assigns.me end)
+
     socket = socket
     |> assign(admin: admin)
     |> assign(users: users)
     |> assign(topic: topic)
+    |> assign(name: my_user.name)
+    
     {:noreply, socket}
   end
 
