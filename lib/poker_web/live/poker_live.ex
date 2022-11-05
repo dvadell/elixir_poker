@@ -148,7 +148,7 @@ defmodule PokerWeb.PokerLive do
     if average[:votes] == 0 do
       "0"
     else
-      "#{ Kernel.trunc( average[:sum] / average[:votes] ) }"
+      "#{ Float.round( average[:sum] / average[:votes], 2 ) }"
     end
   end
 
