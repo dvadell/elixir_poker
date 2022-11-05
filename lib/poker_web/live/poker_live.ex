@@ -34,8 +34,12 @@ defmodule PokerWeb.PokerLive do
     IO.inspect(assigns)
     ~L"""
     <div class="row" style="justify-content: space-between; column-gap: 1rem;">
-      <button phx-click="restart" class="button button-outline" style="flex-grow: 1; color: red"> 🗘 Restart / New </button>
-      <button phx-click="reveal"  class="button button-outline" style="flex-grow: 1; color: red"> 👀 Reveal votes </button>
+      <button phx-click="restart" class="button button-outline admin-button"> 🗘 Restart / New </button>
+      <%= if @reveal do %>
+      <button phx-click="reveal"  class="button button-outline admin-button-disabled"> 👍votes revealed </button>
+      <% else %>
+      <button phx-click="reveal"  class="button button-outline admin-button"> 👀 Reveal votes </button>
+      <% end %>
     </div>
     <form phx-change="update_topic">
       Topic: <input name="topic" value="<%= @topic %>">
