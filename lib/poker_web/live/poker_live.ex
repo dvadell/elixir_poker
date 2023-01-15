@@ -20,7 +20,7 @@ defmodule PokerWeb.PokerLive do
         socket
       end
 
-    socket = assign(socket, vote: 0, 
+    socket = assign(socket, vote: nil, 
                             reveal: false,
                             me: my_id,
                             users: [%{ user_id: my_id, vote: nil, name: my_id }],
@@ -33,102 +33,127 @@ defmodule PokerWeb.PokerLive do
   def render(assigns) when assigns.admin == assigns.me do
     IO.inspect(assigns)
     ~L"""
-    <div class="row" style="justify-content: space-between; column-gap: 1rem;">
-      <button phx-click="restart" class="button button-outline admin-button"> 🗘 Restart / New </button>
-      <%= if @reveal do %>
-      <button phx-click="reveal"  class="button button-outline admin-button-disabled"> 👍votes revealed </button>
-      <% else %>
-      <button phx-click="reveal"  class="button button-outline admin-button"> 👀 Reveal votes </button>
-      <% end %>
-    </div>
-    <form phx-change="update_topic">
-      Topic: <input name="topic" value="<%= @topic %>">
+    <div class="bg-zinc-100 p-6">
+      <nav class="flex justify-between mb-6">
+        <h1 class="text-xl"> <span class="text-rose-600"> 🃁 </span> Scrum</h1>
+        <div class="flex item-center">
+          <button phx-click="restart" class="border-r border-1 border-black px-2"> 🗘 Restart / New </button>
+          <%= if @reveal do %>
+          <button phx-click="reveal"  class="px-2"> 👍votes revealed </button>
+          <% else %>
+          <button phx-click="reveal"  class="px-2"> 👀 Reveal votes </button>
+          <% end %>
+        </div>
+      </nav>
+
+    <form phx-change="update_topic" class="flex flex-col mb-4">
+      <label for="topic" class="mb-2 uppercase font-bold text-lg text-grey-darkest">Topic: </label>
+      <input name="topic" class="border py-2 px-3 text-grey-darkest"  value="<%= @topic %>">
     </form>
-    <form phx-change="update_name">
-      <label>Your name: </label><input name="name" value="<%= @name %>"> 
+    <form phx-change="update_name" class="flex flex-col mb-16">
+      <label for="name" class="mb-2 uppercase font-bold text-lg text-grey-darkest">Your name: </label>
+      <input name="name" class="border py-2 px-3 text-grey-darkest" value="<%= @name %>"> 
     </form>
 
-    <div style="display: flex; justify-content: space-between">
+    <div class="mb-4">
+        <%= if @vote do %>
         <span>You voted: <%= @vote %></span>
+        <% else %>
+        <span>Click on a number to vote ↴:</span>
+        <% end %>
     </div>
 
-    <div class="row" style="justify-content: space-between;column-gap: 1rem;">
-        <button phx-click="vote" value=1 style="flex-grow: 1"> 1 </button>
-        <button phx-click="vote" value=2 style="flex-grow: 1"> 2 </button>
-        <button phx-click="vote" value=3 style="flex-grow: 1"> 3 </button>
-        <button phx-click="vote" value=5 style="flex-grow: 1"> 5 </button>
-        <button phx-click="vote" value=8 style="flex-grow: 1"> 8 </button>
-        <button phx-click="vote" value=13 style="flex-grow: 1"> 13 </button>
+    <div class="flex justify-around mb-16">
+        <button phx-click="vote" value=1> 1 </button>
+        <button phx-click="vote" value=2> 2 </button>
+        <button phx-click="vote" value=3> 3 </button>
+        <button phx-click="vote" value=5> 5 </button>
+        <button phx-click="vote" value=8> 8 </button>
+        <button phx-click="vote" value=13> 13 </button>
     </div>
 
-    <h2> Users </h2>
+    <h2 class="mb-2 uppercase font-bold text-lg text-grey-darkest"> <%= length(@users) %> Users </h2>
 
     <%= for user <- users_in_order(@users) do %>
-    <div class="users-row">
+    <div class="flex justify-between">
       <%= if Map.get(user, :vote) do %>
-        <div class="users-column"> 👤 <strong><%= user.name %></strong> voted </div>
-        <div class="users-column result"><%= user.vote %></div>
+        <div class=""> 👤 <strong><%= user.name %></strong> voted </div>
+        <div class=""><%= user.vote %></div>
       <% else %>
-        <div class="users-column"> 👤 <strong><%= user.name %></strong> hasn't voted yet</div>
+        <div class=""> 👤 <strong><%= user.name %></strong> hasn't voted yet</div>
       <% end %>
     </div>
     <% end %>
-    <div class="users-row" style="border-bottom: solid 1px black"></div>
-    <div class="users-row">
-      <div class="users-column"> 🗠  <strong>Average</strong> </div>
-      <div class="users-column result"><%= average_votes(@users) %></div>
+    <div class="" style="border-bottom: solid 1px black"></div>
+    <div class="flex justify-between">
+      <div class=""> 🗠  <strong>Average</strong> </div>
+      <div class=""><%= average_votes(@users) %></div>
+    </div>
     </div>
     """
   end
 
   def render(assigns) do
-    ~L"""
+    ~L""" 
+    <div class="bg-zinc-100 p-6">
+      <nav class="flex justify-between mb-6">
+        <h1 class="text-xl"> <span style="color: pink; font-size: 120%"> 🃁 </span> Scrum</h1>
+      </nav>
+
     <h2><%= @topic %></h2>
-      <input name="topic" value="<%= @topic %>" type="hidden">
-    <form phx-change="update_name">
-      <label>Your name: </label><input name="name" value="<%= @name %>"> 
+    <!-- What is this input for???? -->
+    <input name="topic" value="<%= @topic %>" type="hidden">
+    <form phx-change="update_name" class="flex flex-col mb-16">
+      <label for="name" class="mb-2 uppercase font-bold text-lg text-grey-darkest">Your name: </label>
+      <input name="name" class="border py-2 px-3 text-grey-darkest" value="<%= @name %>">
     </form>
 
-    You voted: <%= @vote %>
+    <div class="mb-4">
+      <%= if @vote != 0 do %>
+        <span>You voted: <%= @vote %></span>
+      <% else %>
+        <span>Click on a number to vote ↴:</span>
+      <% end %>
+    </div>
 
     <%= if @reveal do %>
     <% else %>
-    <div class="row" style="justify-content: space-between;column-gap: 1rem;">
-        <button phx-click="vote" value=1 style="flex-grow: 1"> 1 </button>
-        <button phx-click="vote" value=2 style="flex-grow: 1"> 2 </button>
-        <button phx-click="vote" value=3 style="flex-grow: 1"> 3 </button>
-        <button phx-click="vote" value=5 style="flex-grow: 1"> 5 </button>
-        <button phx-click="vote" value=8 style="flex-grow: 1"> 8 </button>
-        <button phx-click="vote" value=13 style="flex-grow: 1"> 13 </button>
+    <div class="flex justify-around mb-16">
+        <button phx-click="vote" value=1> 1 </button>
+        <button phx-click="vote" value=2> 2 </button>
+        <button phx-click="vote" value=3> 3 </button>
+        <button phx-click="vote" value=5> 5 </button>
+        <button phx-click="vote" value=8> 8 </button>
+        <button phx-click="vote" value=13> 13 </button>
     </div>
     <% end %>
 
-    <h2> Users </h2>
+    <h2 class="mb-2 uppercase font-bold text-lg text-grey-darkest"> <%= length(@users) %> Users </h2>
 
     <%= if @reveal do %>
         <%= for user <- users_in_order(@users) do %>
-        <div class="users-row">
+        <div class="flex justify-between">
           <%= if Map.get(user, :vote) do %>
-            <div class="users-column"> 👤 <strong><%= user.name %></strong> voted </div>
-            <div class="users-column result"><%= user.vote %></div>
+            <div class=""> 👤 <strong><%= user.name %></strong> voted </div>
+            <div class=""><%= user.vote %></div>
           <% else %>
-            <div class="users-column"> 👤 <strong><%= user.name %></strong> hasn't voted yet</div>
+            <div class=""> 👤 <strong><%= user.name %></strong> hasn't voted yet</div>
           <% end %>
         </div>
         <% end %>
-        <div class="users-row" style="border-bottom: solid 1px black"></div>
-        <div class="users-row">
-          <div class="users-column"> 🗠  <strong>Average</strong> </div>
-          <div class="users-column result"><%= average_votes(@users) %></div>
+        <div class="" style="border-bottom: solid 1px black"></div>
+        <div class="flex justify-between">
+          <div class=""> 🗠  <strong>Average</strong> </div>
+          <div class=""><%= average_votes(@users) %></div>
         </div>
     <% else %>
         <%= for user <- @users do %>
-        <div class="users-row">
+        <div class="flex justify-between">
           <%= if Map.get(user, :vote) do %>
-            <div class="users-column"> 👤 <strong><%= user.name %></strong> voted </div>
-            <div class="users-column result"> ✅ </div>
+            <div class=""> 👤 <strong><%= user.name %></strong> voted </div>
+            <div class=""> ✅ </div>
           <% else %>
-            <div class="users-column"> 👤 <strong><%= user.name %></strong> hasn't voted yet</div>
+            <div class=""> 👤 <strong><%= user.name %></strong> hasn't voted yet</div>
           <% end %>
         </div>
         <% end %>

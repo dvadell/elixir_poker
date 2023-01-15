@@ -49,6 +49,7 @@ defmodule Poker.MixProject do
 
       {:timex, "~> 3.0"},
       {:mnemonic_slugs, "~> 0.0.3"},
+      {:tailwind, "~> 0.1", runtime: Mix.env() == :dev},
     ]
   end
 
@@ -61,7 +62,7 @@ defmodule Poker.MixProject do
   defp aliases do
     [
       setup: ["deps.get"],
-      "assets.deploy": ["esbuild default --minify", "phx.digest"]
+      "assets.deploy": ["esbuild default --minify", "phx.digest", "tailwind default --minify"],
     ]
   end
 end

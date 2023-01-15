@@ -11,53 +11,10 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300&display=swap" rel="stylesheet"> 
-  <style>
-  * {
-        font-family: 'Roboto', sans-serif;
-        font-size: 2rem;
-  }
-  h2 {
-    margin-top: 4rem;
-  }
-  .h1 {
-    font-weight: bold;
-  }
- .users-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-  }
- .users-column {
-    flex-shrink: 1;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    min-width: 0;
-  }
- .result {
-    text-align: right;
-    width: 4rem;
- }
- .admin-button {
-    flex-grow: 1;
-    color: red;
- }
- .admin-button-disabled {
-    flex-grow: 1;
- }
-  </style>
   </head>
-  <body>
-    <header>
-      <section class="container">
-        <nav>
-          <ul>
-            <li><!-- <a href="https://hexdocs.pm/phoenix/overview.html">Get Started</a> --></li>
-          </ul>
-        </nav>
-        <h1> Scrum <span style="color: pink; font-size: 120%"> 🃁 </span></h1>
-      </section>
-    </header>
-    <%= @inner_content %>
+  <body class="text-black-700">
+    <div class="container mx-auto">
+      <%= @inner_content %>
+    </div>
   </body>
 </html>
